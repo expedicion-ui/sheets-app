@@ -354,6 +354,9 @@ def procesar_xls(contenido: bytes):
     df.insert(0, "BUQUE", buque)
     df.insert(1, "PRODUCTO", producto)
 
+    # Reemplazar NaN por cadena vacía para evitar errores de serialización
+    df = df.fillna("").infer_objects(copy=False)
+
     if not correcciones:
         correcciones.append("No se encontraron errores — el archivo estaba limpio")
 
@@ -421,8 +424,8 @@ async def subir_xls(archivo: UploadFile = File(...)):
         if filas_existentes == 0:
             sheet.append_row(COLUMNAS_BASE)
 
-        for _, fila in df.iterrows():
-            sheet.append_row(fila.tolist())
+        todas_las_filas = df.values.tolist()
+        sheet.append_rows(todas_las_filas, value_input_option="USER_ENTERED")
 
         return {
             "exito": True,

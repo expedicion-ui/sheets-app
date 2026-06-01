@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import './App.css';
 
-const API = 'http://localhost:8000';
+const API = 'http://localhost:8001';
 
 function clasificarCorreccion(texto) {
   const t = texto.toLowerCase();
