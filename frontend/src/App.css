@@ -251,6 +251,32 @@ tbody td {
 }
 .exito-banner p { color: #555; font-size: 14px; }
 
+/* ── Lista de archivos ── */
+.archivos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* ── Preview card header ── */
+.preview-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.preview-subtitulo {
+  font-size: 12px;
+  color: #888;
+  font-weight: 400;
+}
+
 /* ── Spinner ── */
 .spinner {
   width: 18px; height: 18px;
