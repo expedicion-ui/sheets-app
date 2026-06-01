@@ -1,0 +1,224 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f0f2f5;
+  color: #1a1a2e;
+}
+
+.app {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.app-header {
+  margin-bottom: 32px;
+}
+
+.app-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.app-header p {
+  margin-top: 4px;
+  color: #666;
+  font-size: 14px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+}
+
+.card h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #1a1a2e;
+}
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed #c5cae9;
+  border-radius: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #fafbff;
+}
+
+.dropzone:hover,
+.dropzone.active {
+  border-color: #3f51b5;
+  background: #f0f2ff;
+}
+
+.dropzone-icon { font-size: 40px; margin-bottom: 12px; }
+.dropzone p { color: #555; font-size: 14px; }
+.dropzone .hint { font-size: 12px; color: #999; margin-top: 6px; }
+
+.file-selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f0f2ff;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #3f51b5;
+  font-weight: 500;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary { background: #3f51b5; color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #303f9f; }
+
+.btn-success { background: #2e7d32; color: #fff; }
+.btn-success:hover:not(:disabled) { background: #1b5e20; }
+
+.btn-ghost {
+  background: transparent;
+  color: #3f51b5;
+  border: 1.5px solid #c5cae9;
+}
+.btn-ghost:hover:not(:disabled) { background: #f0f2ff; }
+
+.btn-row { display: flex; gap: 12px; margin-top: 20px; }
+
+/* Correcciones */
+.correcciones-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.correccion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.correccion-item.ok    { background: #e8f5e9; color: #2e7d32; }
+.correccion-item.aviso { background: #fff3e0; color: #e65100; }
+.correccion-item.error { background: #fce4ec; color: #c62828; }
+.correccion-item.info  { background: #e3f2fd; color: #1565c0; }
+
+.correccion-item .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.ok .dot    { background: #2e7d32; }
+.aviso .dot { background: #e65100; }
+.error .dot { background: #c62828; }
+.info .dot  { background: #1565c0; }
+
+/* Resumen */
+.resumen {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.resumen-item {
+  flex: 1;
+  min-width: 140px;
+  background: #f8f9ff;
+  border-radius: 8px;
+  padding: 14px 18px;
+  border-left: 3px solid #3f51b5;
+}
+
+.resumen-item .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.resumen-item .value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+/* Tabla */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e8eaf6;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+thead th {
+  background: #e8eaf6;
+  padding: 9px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #3f51b5;
+  white-space: nowrap;
+}
+
+tbody tr:nth-child(even) { background: #fafbff; }
+
+tbody td {
+  padding: 8px 12px;
+  border-top: 1px solid #f0f0f0;
+  white-space: nowrap;
+  color: #333;
+}
+
+/* Exito */
+.exito-banner { text-align: center; padding: 32px; }
+.exito-banner .check { font-size: 52px; margin-bottom: 12px; }
+.exito-banner h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.exito-banner p { color: #666; font-size: 14px; }
+
+/* Spinner */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
