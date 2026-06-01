@@ -295,7 +295,7 @@ export default function App() {
             Nueva carga
           </button>
           <button className={`nav-btn ${pantalla === 'pendientes' ? 'active' : ''}`} onClick={() => setPantalla('pendientes')}>
-            Pendientes {pendientes.length > 0 && <span className="badge">{pendientes.length}</span>}
+            Pendientes de revisión {pendientes.length > 0 && <span className="badge">{pendientes.length}</span>}
           </button>
         </nav>
       </div>
