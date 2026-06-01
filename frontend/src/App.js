@@ -119,8 +119,17 @@ export default function App() {
   return (
     <div className="app">
       <div className="app-header">
-        <h1>sheets-app</h1>
-        <p>Carga archivos de romaneo y sincronizalos con Google Sheets</p>
+        <svg className="app-header-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#009661" stroke="#005738" strokeWidth="2"/>
+          <polygon points="50,18 82,34 82,66 50,82 18,66 18,34" fill="none" stroke="#fff" strokeWidth="1.5"/>
+          <text x="50" y="62" textAnchor="middle" fill="#DC291E" fontSize="22" fontWeight="bold" fontFamily="Inter,sans-serif">ISUSA</text>
+          <path d="M30 35 Q50 20 70 35" stroke="#fff" strokeWidth="2" fill="none"/>
+          <path d="M35 30 Q50 18 65 30" stroke="#fff" strokeWidth="1.5" fill="none"/>
+        </svg>
+        <div>
+          <h1>ISUSA — Control de Descargas</h1>
+          <p>Carga archivos de romaneo y sincronizalos con Google Sheets</p>
+        </div>
       </div>
 
       {/* Zona de carga */}
