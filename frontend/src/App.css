@@ -336,6 +336,22 @@ tbody td {
 }
 .btn-danger:hover:not(:disabled) { background: #fef2f2; }
 
+.btn-warning { background: #d97706; color: #fff; }
+.btn-warning:hover:not(:disabled) { background: #b45309; }
+
+.alerta-duplicado {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #fff8e1;
+  border-left: 3px solid #d97706;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #7c4a00;
+}
+
 /* ── Lista de archivos ── */
 .archivos-lista {
   display: flex;

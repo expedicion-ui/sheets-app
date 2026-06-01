@@ -151,11 +151,11 @@ function PreviewCard({ item, onSubir, onPosponer, onEliminar, modoReview = false
   const cargasConError = extraerCargasConError(item.correcciones);
   const filasConError = item.datos.filter(f => cargasConError.has(Number(f['CARGA'])));
 
-  const handleSubir = async () => {
+  const handleSubir = async (reemplazar = false) => {
     setSubiendo(true);
     try {
       const filas = datos.map(r => item.columnas.map(c => r[c] ?? ''));
-      await onSubir(filas, item.descarga);
+      await onSubir(filas, item.descarga, reemplazar);
       setExito(true);
     } finally {
       setSubiendo(false);
@@ -217,19 +217,39 @@ function PreviewCard({ item, onSubir, onPosponer, onEliminar, modoReview = false
         </div>
       )}
 
+      {item.duplicada && (
+        <div className="alerta-duplicado">
+          <strong>⚠ Esta descarga ya existe en Google Sheets.</strong>
+          <span>Podés reemplazar los datos anteriores o cancelar la subida.</span>
+        </div>
+      )}
+
       <div className="btn-row">
-        <button className="btn btn-success" onClick={handleSubir} disabled={subiendo}>
-          {subiendo ? <><span className="spinner" /> Subiendo...</> : 'Subir a Google Sheets'}
-        </button>
-        {!modoReview && (
-          <button className="btn btn-ghost" onClick={() => onPosponer(item)}>
-            Guardar para revisión
-          </button>
-        )}
-        {modoReview && (
-          <button className="btn btn-danger" onClick={() => onEliminar(item.id)}>
-            Descartar
-          </button>
+        {item.duplicada ? (
+          <>
+            <button className="btn btn-warning" onClick={() => handleSubir(true)} disabled={subiendo}>
+              {subiendo ? <><span className="spinner" /> Reemplazando...</> : 'Reemplazar datos anteriores'}
+            </button>
+            <button className="btn btn-danger" onClick={() => onPosponer ? onPosponer(item) : onEliminar(item.id)}>
+              Cancelar
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="btn btn-success" onClick={() => handleSubir(false)} disabled={subiendo}>
+              {subiendo ? <><span className="spinner" /> Subiendo...</> : 'Subir a Google Sheets'}
+            </button>
+            {!modoReview && (
+              <button className="btn btn-ghost" onClick={() => onPosponer(item)}>
+                Guardar para revisión
+              </button>
+            )}
+            {modoReview && (
+              <button className="btn btn-danger" onClick={() => onEliminar(item.id)}>
+                Descartar
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -271,13 +291,15 @@ export default function App() {
     setMensajeError('');
     setProgreso({ actual: 0, total: archivos.length });
     try {
+      const { data: { descargas: existentes } } = await axios.get(`${API}/descargas`);
       const resultados = [];
       for (let i = 0; i < archivos.length; i++) {
         setProgreso({ actual: i + 1, total: archivos.length });
         const form = new FormData();
         form.append('archivo', archivos[i]);
         const { data } = await axios.post(`${API}/previsualizar-xls`, form);
-        resultados.push({ ...data, nombre: archivos[i].name });
+        const duplicada = existentes.includes(data.descarga);
+        resultados.push({ ...data, nombre: archivos[i].name, duplicada });
       }
       setPreviews(resultados);
       setEstado('preview');
@@ -287,8 +309,8 @@ export default function App() {
     }
   };
 
-  const subirDescarga = async (filas, descarga) => {
-    await axios.post(`${API}/subir-datos`, { filas });
+  const subirDescarga = async (filas, descarga, reemplazar = false) => {
+    await axios.post(`${API}/subir-datos`, { filas, reemplazar });
     setPreviews(prev => prev.filter(p => p.descarga !== descarga));
   };
 

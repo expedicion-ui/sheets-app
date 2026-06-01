@@ -422,6 +422,21 @@ async def previsualizar_xls(archivo: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/descargas")
+def obtener_descargas():
+    """Devuelve la lista de identificadores DESCARGA ya existentes en la hoja."""
+    try:
+        sheet = get_sheet()
+        valores = sheet.get_all_values()
+        if len(valores) < 2:
+            return {"descargas": []}
+        col_idx = 0  # DESCARGA es la primera columna
+        descargas = list({fila[col_idx] for fila in valores[1:] if fila and fila[col_idx]})
+        return {"descargas": descargas}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/subir-datos")
 async def subir_datos(payload: dict):
     """Sube datos ya procesados y editados manualmente."""
@@ -430,19 +445,32 @@ async def subir_datos(payload: dict):
         if not filas:
             raise HTTPException(status_code=400, detail="No hay filas para subir.")
 
+        reemplazar = payload.get("reemplazar", False)
         sheet = get_sheet()
-        filas_existentes = len(sheet.get_all_values())
+        todos = sheet.get_all_values()
+        descarga = filas[0][0] if filas and filas[0] else ""
 
-        if filas_existentes == 0:
+        if reemplazar and descarga:
+            # Eliminar filas existentes de esta descarga (sin tocar el encabezado)
+            indices_borrar = [
+                i + 1 for i, fila in enumerate(todos[1:])
+                if fila and fila[0] == descarga
+            ]
+            # Borrar de abajo hacia arriba para no desplazar índices
+            for i in sorted(indices_borrar, reverse=True):
+                sheet.delete_rows(i + 1)  # +1 porque Sheets usa base 1
+
+        todos_actualizado = sheet.get_all_values()
+        if len(todos_actualizado) == 0:
             sheet.append_row(COLUMNAS_BASE)
 
         sheet.append_rows(filas, value_input_option="USER_ENTERED")
 
-        descarga = filas[0][0] if filas and filas[0] else ""
         return {
             "exito": True,
             "descarga": descarga,
             "filas_agregadas": len(filas),
+            "reemplazada": reemplazar,
         }
     except HTTPException:
         raise
