@@ -44,11 +44,29 @@ function ListaCorrecciones({ correcciones }) {
 
 const COLS_NUMERICAS = ['CARGA','BRUTO PUERTO','TARA PUERTO','NETO PUERTO','BRUTO PLANTA','TARA PLANTA','NETO PLANTA','NETO'];
 
-function TablaEditable({ columnas, datos, onChange }) {
-  const [editando, setEditando] = useState(null); // {fila, col}
+function extraerCargasConError(correcciones) {
+  const cargas = new Set();
+  correcciones.forEach(c => {
+    // Busca patrones como "carga 94", "carga 208", "en carga 307"
+    const matches = c.matchAll(/carga\s+(\d+)/gi);
+    for (const m of matches) cargas.add(Number(m[1]));
+    // También captura matrículas corregidas que no siempre mencionan carga explícita
+    if (c.toLowerCase().includes('revisar manualmente')) {
+      const m = c.match(/carga\s+(\d+)/i);
+      if (m) cargas.add(Number(m[1]));
+    }
+  });
+  return cargas;
+}
+
+function TablaEditable({ columnas, datos, correcciones, onChange }) {
+  const [editando, setEditando] = useState(null);
   const [valorEdit, setValorEdit] = useState('');
 
-  // Detectar qué filas tienen alguna corrección de peso/matrícula para resaltarlas
+  const cargasConError = extraerCargasConError(correcciones);
+
+  const filaEditable = (fila) => cargasConError.has(Number(fila['CARGA']));
+
   const iniciarEdit = (fi, col) => {
     setEditando({ fi, col });
     setValorEdit(String(datos[fi][col] ?? ''));
@@ -86,32 +104,37 @@ function TablaEditable({ columnas, datos, onChange }) {
           <tr>{cols.map(c => <th key={c}>{c}</th>)}</tr>
         </thead>
         <tbody>
-          {datos.map((fila, fi) => (
-            <tr key={fi}>
-              {cols.map(col => {
-                const esEditando = editando?.fi === fi && editando?.col === col;
-                return (
-                  <td key={col}
-                    className={esEditando ? 'celda-editando' : 'celda-editable'}
-                    onClick={() => !esEditando && iniciarEdit(fi, col)}
-                  >
-                    {esEditando ? (
-                      <input
-                        className="input-celda"
-                        value={valorEdit}
-                        autoFocus
-                        onChange={e => setValorEdit(e.target.value)}
-                        onBlur={confirmarEdit}
-                        onKeyDown={e => { if (e.key === 'Enter') confirmarEdit(); if (e.key === 'Escape') setEditando(null); }}
-                      />
-                    ) : (
-                      String(fila[col] ?? '')
-                    )}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
+          {datos.map((fila, fi) => {
+            const editable = filaEditable(fila);
+            return (
+              <tr key={fi} className={editable ? 'fila-con-error' : ''}>
+                {cols.map(col => {
+                  const esEditando = editando?.fi === fi && editando?.col === col;
+                  return (
+                    <td
+                      key={col}
+                      className={esEditando ? 'celda-editando' : editable ? 'celda-editable' : ''}
+                      title={editable ? 'Clic para editar' : ''}
+                      onClick={() => editable && !esEditando && iniciarEdit(fi, col)}
+                    >
+                      {esEditando ? (
+                        <input
+                          className="input-celda"
+                          value={valorEdit}
+                          autoFocus
+                          onChange={e => setValorEdit(e.target.value)}
+                          onBlur={confirmarEdit}
+                          onKeyDown={e => { if (e.key === 'Enter') confirmarEdit(); if (e.key === 'Escape') setEditando(null); }}
+                        />
+                      ) : (
+                        String(fila[col] ?? '')
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -174,7 +197,7 @@ function PreviewCard({ item, onSubir, onPosponer, onEliminar, modoReview = false
           <p className="preview-subtitulo" style={{ margin: '14px 0 8px', fontWeight: 600 }}>
             Datos procesados — hacé clic en una celda para editar:
           </p>
-          <TablaEditable columnas={item.columnas} datos={datos} onChange={setDatos} />
+          <TablaEditable columnas={item.columnas} datos={datos} correcciones={item.correcciones} onChange={setDatos} />
         </div>
       )}
 

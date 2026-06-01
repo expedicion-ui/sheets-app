@@ -306,6 +306,10 @@ tbody td {
 .card-review  { border-top-color: #d97706; }
 .card-exito   { border-top-color: #009661; opacity: 0.75; }
 
+/* ── Filas con error ── */
+.fila-con-error { background: #fffbf0 !important; }
+.fila-con-error:hover { background: #fff3cd !important; }
+
 /* ── Celda editable ── */
 .celda-editable {
   cursor: pointer;
