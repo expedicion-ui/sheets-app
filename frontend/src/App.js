@@ -148,6 +148,8 @@ function PreviewCard({ item, onSubir, onPosponer, onEliminar, modoReview = false
   const [datos, setDatos] = useState(item.datos);
   const [subiendo, setSubiendo] = useState(false);
   const [exito, setExito] = useState(false);
+  const cargasConError = extraerCargasConError(item.correcciones);
+  const filasConError = item.datos.filter(f => cargasConError.has(Number(f['CARGA'])));
 
   const handleSubir = async () => {
     setSubiendo(true);
@@ -195,9 +197,23 @@ function PreviewCard({ item, onSubir, onPosponer, onEliminar, modoReview = false
         <div style={{ marginTop: 16 }}>
           <ListaCorrecciones correcciones={item.correcciones} />
           <p className="preview-subtitulo" style={{ margin: '14px 0 8px', fontWeight: 600 }}>
-            Datos procesados — hacé clic en una celda para editar:
+            Registros con errores — hacé clic en una celda para editar:
           </p>
-          <TablaEditable columnas={item.columnas} datos={datos} correcciones={item.correcciones} onChange={setDatos} />
+          {filasConError.length > 0 ? (
+            <TablaEditable
+              columnas={item.columnas}
+              datos={filasConError.map(f => datos.find(d => d['CARGA'] === f['CARGA']) ?? f)}
+              correcciones={item.correcciones}
+              onChange={(filasEditadas) => {
+                const mapa = Object.fromEntries(filasEditadas.map(f => [f['CARGA'], f]));
+                setDatos(datos.map(f => mapa[f['CARGA']] ?? f));
+              }}
+            />
+          ) : (
+            <p className="correccion-item ok" style={{ marginTop: 8 }}>
+              <span className="dot" /> No hay registros con errores para editar.
+            </p>
+          )}
         </div>
       )}
 
