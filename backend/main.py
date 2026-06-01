@@ -33,8 +33,8 @@ COLUMNAS_BASE = [
 ]
 
 # Rangos esperados para validación de pesos
-TARA_MIN, TARA_MAX = 12000, 17500
-BRUTO_MIN = 44000  # El camión de saldo puede estar por debajo, se avisa pero no se corrige
+TARA_MIN, TARA_MAX = 12000, 18000
+BRUTO_MIN = 42000  # El camión de saldo puede estar por debajo, se avisa pero no se corrige
 BRUTO_MAX = 58000
 
 # Tiempo mínimo (en minutos) entre dos apariciones del mismo camión
@@ -87,7 +87,7 @@ def corregir_matriculas(df: pd.DataFrame, correcciones: list) -> pd.DataFrame:
         matches = difflib.get_close_matches(mat, frecuentes, n=1, cutoff=0.75)
         if not matches:
             correcciones.append(
-                f"MATRÍCULA: '{mat}' aparece solo una vez y no tiene similar — revisar manualmente"
+                f"MATRÍCULA: '{mat}' aparece solo una vez y no tiene similar — carga {df.loc[idx,'CARGA']} revisar manualmente"
             )
             continue
 
