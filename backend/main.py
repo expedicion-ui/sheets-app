@@ -340,6 +340,16 @@ def procesar_xls(contenido: bytes):
     df = corregir_boletas(df, correcciones)
     df = corregir_pesos(df, correcciones)
 
+    # Recalcular NETO final (NETO PLANTA - NETO PUERTO) después de todas las correcciones
+    neto_calculado = df["NETO PLANTA"] - df["NETO PUERTO"]
+    diferencias = (neto_calculado - df["NETO"]).abs() > 0
+    n_ajustes = diferencias.sum()
+    if n_ajustes > 0:
+        df.loc[diferencias, "NETO"] = neto_calculado[diferencias].astype(int)
+        correcciones.append(
+            f"NETO final recalculado en {n_ajustes} fila(s) (NETO PLANTA - NETO PUERTO)"
+        )
+
     # Agregar BUQUE y PRODUCTO al inicio
     df.insert(0, "BUQUE", buque)
     df.insert(1, "PRODUCTO", producto)
