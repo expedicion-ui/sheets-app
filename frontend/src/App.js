@@ -167,13 +167,9 @@ export default function App() {
           <div className="card">
             <h2>Resumen del archivo</h2>
             <div className="resumen">
-              <div className="resumen-item">
-                <div className="label">Buque</div>
-                <div className="value" style={{ fontSize: 16 }}>{preview.buque}</div>
-              </div>
-              <div className="resumen-item">
-                <div className="label">Producto</div>
-                <div className="value" style={{ fontSize: 16 }}>{preview.producto}</div>
+              <div className="resumen-item" style={{ flexBasis: '100%' }}>
+                <div className="label">Descarga</div>
+                <div className="value" style={{ fontSize: 15 }}>{preview.descarga}</div>
               </div>
               <div className="resumen-item">
                 <div className="label">Cargas a subir</div>
@@ -223,7 +219,7 @@ export default function App() {
           <div className="exito-banner">
             <div className="check">✅</div>
             <h2>{resultado.filas_agregadas} cargas subidas correctamente</h2>
-            <p>{resultado.buque} — {resultado.producto}</p>
+            <p>{resultado.descarga}</p>
           </div>
           <ListaCorrecciones correcciones={resultado.correcciones} />
           <div className="btn-row" style={{ justifyContent: 'center', marginTop: 24 }}>

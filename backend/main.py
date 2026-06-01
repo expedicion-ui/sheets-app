@@ -26,7 +26,7 @@ SCOPES = [
 ]
 
 COLUMNAS_BASE = [
-    "BUQUE", "PRODUCTO", "CARGA", "MATRÍCULA", "BOLETA",
+    "DESCARGA", "BUQUE", "PRODUCTO", "CARGA", "MATRÍCULA", "BOLETA",
     "FECHA", "HORA ENTRADA", "HORA SALIDA",
     "BRUTO PUERTO", "TARA PUERTO", "NETO PUERTO",
     "BRUTO PLANTA", "TARA PLANTA", "NETO PLANTA", "NETO",
@@ -350,9 +350,18 @@ def procesar_xls(contenido: bytes):
             f"NETO final recalculado en {n_ajustes} fila(s) (NETO PLANTA - NETO PUERTO)"
         )
 
-    # Agregar BUQUE y PRODUCTO al inicio
-    df.insert(0, "BUQUE", buque)
-    df.insert(1, "PRODUCTO", producto)
+    # Calcular identificador de Descarga usando la fecha de la primera carga
+    fecha_inicio = df["FECHA"].iloc[0] if len(df) > 0 else ""
+    try:
+        mes_anio = datetime.strptime(fecha_inicio, "%d/%m/%Y").strftime("%m/%Y")
+    except Exception:
+        mes_anio = fecha_inicio
+    descarga = f"{producto} - {mes_anio} - {buque}"
+
+    # Agregar columnas identificadoras al inicio
+    df.insert(0, "DESCARGA", descarga)
+    df.insert(1, "BUQUE", buque)
+    df.insert(2, "PRODUCTO", producto)
 
     # Reemplazar NaN por cadena vacía para evitar errores de serialización
     df = df.fillna("").infer_objects(copy=False)
@@ -402,6 +411,7 @@ async def previsualizar_xls(archivo: UploadFile = File(...)):
         df, buque, producto, correcciones = procesar_xls(contenido)
         preview = df.head(5).to_dict(orient="records")
         return {
+            "descarga": df["DESCARGA"].iloc[0] if len(df) > 0 else "",
             "buque": buque,
             "producto": producto,
             "total_filas": len(df),
@@ -429,6 +439,7 @@ async def subir_xls(archivo: UploadFile = File(...)):
 
         return {
             "exito": True,
+            "descarga": df["DESCARGA"].iloc[0] if len(df) > 0 else "",
             "buque": buque,
             "producto": producto,
             "filas_agregadas": len(df),
