@@ -251,6 +251,85 @@ tbody td {
 }
 .exito-banner p { color: #555; font-size: 14px; }
 
+/* ── Navegación ── */
+.app-nav {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1.5px solid #b2d8c8;
+  border-radius: 6px;
+  background: transparent;
+  color: #555;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover { background: #edf7f3; color: #009661; border-color: #009661; }
+.nav-btn.active { background: #009661; color: #fff; border-color: #009661; }
+
+.badge {
+  background: #DC291E;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ── Tags ── */
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+.tag-ok       { background: #edf7f3; color: #005738; }
+.tag-pendiente { background: #fff8e1; color: #b45309; }
+
+/* ── Card variantes ── */
+.card-review  { border-top-color: #d97706; }
+.card-exito   { border-top-color: #009661; opacity: 0.75; }
+
+/* ── Celda editable ── */
+.celda-editable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.celda-editable:hover { background: #edf7f3 !important; }
+.celda-editando { padding: 0 !important; }
+
+.input-celda {
+  width: 100%;
+  border: none;
+  outline: 2px solid #009661;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  background: #fff;
+}
+
+/* ── Botón danger ── */
+.btn-danger {
+  background: transparent;
+  color: #DC291E;
+  border: 1.5px solid #f5c0bc;
+}
+.btn-danger:hover:not(:disabled) { background: #fef2f2; }
+
 /* ── Lista de archivos ── */
 .archivos-lista {
   display: flex;

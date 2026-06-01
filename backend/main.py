@@ -405,19 +405,47 @@ def obtener_hojas():
 
 @app.post("/previsualizar-xls")
 async def previsualizar_xls(archivo: UploadFile = File(...)):
-    """Procesa el archivo y devuelve previsualización sin subir nada."""
+    """Procesa el archivo y devuelve todos los datos corregidos sin subir nada."""
     try:
         contenido = await archivo.read()
         df, buque, producto, correcciones = procesar_xls(contenido)
-        preview = df.head(5).to_dict(orient="records")
         return {
             "descarga": df["DESCARGA"].iloc[0] if len(df) > 0 else "",
             "buque": buque,
             "producto": producto,
             "total_filas": len(df),
             "correcciones": correcciones,
-            "preview": preview,
+            "columnas": df.columns.tolist(),
+            "datos": df.to_dict(orient="records"),
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/subir-datos")
+async def subir_datos(payload: dict):
+    """Sube datos ya procesados y editados manualmente."""
+    try:
+        filas = payload.get("filas", [])
+        if not filas:
+            raise HTTPException(status_code=400, detail="No hay filas para subir.")
+
+        sheet = get_sheet()
+        filas_existentes = len(sheet.get_all_values())
+
+        if filas_existentes == 0:
+            sheet.append_row(COLUMNAS_BASE)
+
+        sheet.append_rows(filas, value_input_option="USER_ENTERED")
+
+        descarga = filas[0][0] if filas and filas[0] else ""
+        return {
+            "exito": True,
+            "descarga": descarga,
+            "filas_agregadas": len(filas),
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
