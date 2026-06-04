@@ -143,7 +143,7 @@ function TablaEditable({ columnas, datos, correcciones, onChange }) {
 
 // ── PreviewCard ─────────────────────────────────────────────────────────────
 
-function PreviewCard({ item, onSubir, onPosponer, onEliminar, modoReview = false }) {
+function PreviewCard({ item, onSubir, onPosponer, onEliminar, onCancelar, modoReview = false }) {
   const [expandida, setExpandida] = useState(modoReview);
   const [datos, setDatos] = useState(item.datos);
   const [subiendo, setSubiendo] = useState(false);
@@ -180,7 +180,7 @@ function PreviewCard({ item, onSubir, onPosponer, onEliminar, modoReview = false
       <div className="preview-card-header">
         <div>
           {modoReview && <span className="tag tag-pendiente">Pendiente de revisión</span>}
-          <h2 style={{ marginTop: modoReview ? 6 : 0 }}>{item.descarga}</h2>
+          <h2 style={{ marginTop: modoReview ? 6 : 0 }} translate="no">{item.descarga}</h2>
           <span className="preview-subtitulo">
             {item.total_filas} cargas · {item.correcciones.length} corrección/es
             {item.fechaAgregada && ` · guardado ${new Date(item.fechaAgregada).toLocaleDateString()}`}
@@ -230,7 +230,7 @@ function PreviewCard({ item, onSubir, onPosponer, onEliminar, modoReview = false
             <button className="btn btn-warning" onClick={() => handleSubir(true)} disabled={subiendo}>
               {subiendo ? <><span className="spinner" /> Reemplazando...</> : 'Reemplazar datos anteriores'}
             </button>
-            <button className="btn btn-danger" onClick={() => onPosponer ? onPosponer(item) : onEliminar(item.id)}>
+            <button className="btn btn-danger" onClick={() => onCancelar ? onCancelar(item.descarga) : onEliminar(item.id)}>
               Cancelar
             </button>
           </>
@@ -343,7 +343,7 @@ export default function App() {
   // ── Render ──
 
   return (
-    <div className="app">
+    <div className="app" translate="no">
       {/* Header */}
       <div className="app-header">
         <img src={logoIsusa} alt="ISUSA" className="app-header-logo" />
@@ -376,7 +376,7 @@ export default function App() {
             ) : (
               <div className="archivos-lista">
                 {archivos.map((a, i) => (
-                  <div key={i} className="file-selected">📄 {a.name}</div>
+                  <div key={i} className="file-selected" translate="no">📄 {a.name}</div>
                 ))}
                 <button className="btn btn-ghost" style={{ marginTop: 10, alignSelf: 'flex-start' }} onClick={reiniciar}>
                   Cambiar archivos
@@ -426,12 +426,13 @@ export default function App() {
                 </p>
               </div>
 
-              {previews.map((p, i) => (
+              {previews.map((p) => (
                 <PreviewCard
-                  key={i}
+                  key={p.descarga}
                   item={p}
                   onSubir={subirDescarga}
                   onPosponer={posponerDescarga}
+                  onCancelar={(descarga) => setPreviews(prev => prev.filter(x => x.descarga !== descarga))}
                 />
               ))}
 

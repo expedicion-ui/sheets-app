@@ -6,6 +6,7 @@ import pandas as pd
 import io
 import re
 import difflib
+import traceback
 from datetime import datetime, timedelta
 
 app = FastAPI()
@@ -84,6 +85,7 @@ def corregir_matriculas(df: pd.DataFrame, correcciones: list) -> pd.DataFrame:
     frecuentes = freq[freq > 1].index.tolist()
 
     for mat in unicas:
+        idx = df[df["MATRÍCULA"] == mat].index[0]
         matches = difflib.get_close_matches(mat, frecuentes, n=1, cutoff=0.75)
         if not matches:
             correcciones.append(
@@ -92,7 +94,6 @@ def corregir_matriculas(df: pd.DataFrame, correcciones: list) -> pd.DataFrame:
             continue
 
         candidata = matches[0]
-        idx = df[df["MATRÍCULA"] == mat].index[0]
         dt_unica = df.loc[idx, "_dt"]
 
         if dt_unica is None:
@@ -147,9 +148,11 @@ def corregir_boletas(df: pd.DataFrame, correcciones: list) -> pd.DataFrame:
 
     # Detectar duplicados
     dup = df["_bol_int"].dropna()
-    dup = dup[dup.duplicated()]
+    dup = dup[dup.duplicated(keep=False)]
     for b in dup.unique():
-        correcciones.append(f"BOLETA: número {int(b)} duplicado — revisar manualmente")
+        cargas = df[df["_bol_int"] == b]["CARGA"].tolist()
+        cargas_str = ", ".join(f"carga {c}" for c in cargas)
+        correcciones.append(f"BOLETA: número {int(b)} duplicado en {cargas_str} — revisar manualmente")
 
     # Detectar boletas vacías y completar solo cuando el hueco entre
     # la boleta anterior y siguiente es exactamente 1
@@ -419,6 +422,7 @@ async def previsualizar_xls(archivo: UploadFile = File(...)):
             "datos": df.to_dict(orient="records"),
         }
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
