@@ -1,0 +1,21 @@
+# Credenciales — nunca al repo
+backend/credentials.json
+
+# Python
+backend/venv/
+backend/__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Node
+frontend/node_modules/
+
+# Build
+frontend/build/
+
+# Claude Code (skill local, no es parte del producto)
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
