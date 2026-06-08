@@ -260,7 +260,7 @@ function PreviewCard({ item, onSubir, onPosponer, onEliminar, onCancelar, modoRe
 // ── App principal ───────────────────────────────────────────────────────────
 
 export default function App() {
-  const [pantalla, setPantalla] = useState('inicio'); // inicio | pendientes | reportes
+  const [pantalla, setPantalla] = useState('reportes'); // inicio | pendientes | reportes
   const [archivos, setArchivos] = useState([]);
   const [estado, setEstado] = useState('idle');
   const [previews, setPreviews] = useState([]);
@@ -354,17 +354,37 @@ export default function App() {
           <p>Carga archivos de romaneo y sincronizalos con Google Sheets</p>
         </div>
         <nav className="app-nav">
-          <button className={`nav-btn ${pantalla === 'inicio' ? 'active' : ''}`} onClick={() => { setPantalla('inicio'); reiniciar(); }}>
-            Nueva carga
-          </button>
-          <button className={`nav-btn ${pantalla === 'pendientes' ? 'active' : ''}`} onClick={() => setPantalla('pendientes')}>
-            Pendientes de revisión {pendientes.length > 0 && <span className="badge">{pendientes.length}</span>}
-          </button>
           <button className={`nav-btn ${pantalla === 'reportes' ? 'active' : ''}`} onClick={() => setPantalla('reportes')}>
             Reportes
           </button>
+          <button
+            className={`nav-btn ${pantalla === 'inicio' || pantalla === 'pendientes' ? 'active' : ''}`}
+            onClick={() => { setPantalla('inicio'); reiniciar(); }}
+          >
+            Carga de datos
+            {pendientes.length > 0 && <span className="badge">{pendientes.length}</span>}
+          </button>
         </nav>
       </div>
+
+      {/* ── Sub-nav: Carga de datos ── */}
+      {(pantalla === 'inicio' || pantalla === 'pendientes') && (
+        <div className="sub-nav">
+          <button
+            className={`sub-nav-btn ${pantalla === 'inicio' ? 'active' : ''}`}
+            onClick={() => { setPantalla('inicio'); reiniciar(); }}
+          >
+            Nueva descarga
+          </button>
+          <button
+            className={`sub-nav-btn ${pantalla === 'pendientes' ? 'active' : ''}`}
+            onClick={() => setPantalla('pendientes')}
+          >
+            Pendientes de revisión
+            {pendientes.length > 0 && <span className="badge badge-dark">{pendientes.length}</span>}
+          </button>
+        </div>
+      )}
 
       {/* ── Pantalla: Nueva carga ── */}
       {pantalla === 'inicio' && (

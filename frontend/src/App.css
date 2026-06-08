@@ -288,6 +288,42 @@ tbody td {
   font-weight: 700;
 }
 
+/* ── Sub-nav (Carga de datos) ── */
+.sub-nav {
+  display: flex;
+  gap: 4px;
+  padding: 8px 24px;
+  background: #f0f9f4;
+  border-bottom: 1px solid #d0e9df;
+}
+
+.sub-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sub-nav-btn:hover { background: #d8f0e7; color: #007a4d; }
+.sub-nav-btn.active { background: #009661; color: #fff; }
+
+.badge-dark {
+  background: #DC291E;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 /* ── Tags ── */
 .tag {
   display: inline-block;
@@ -424,6 +460,62 @@ tbody td {
 
 .filtro-select { min-width: 180px; }
 .filtro-input  { min-width: 140px; }
+
+/* ── Combobox ── */
+.combobox-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.combobox-input {
+  min-width: 180px;
+  padding-right: 28px;
+}
+
+.combobox-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: #888;
+  padding: 0;
+  line-height: 1;
+}
+
+.combobox-clear:hover { color: #DC291E; }
+
+.combobox-lista {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1.5px solid #b2d8c8;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 100;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.combobox-lista li {
+  padding: 8px 14px;
+  font-size: 13.5px;
+  cursor: pointer;
+  color: #1a1a1a;
+}
+
+.combobox-lista li:hover,
+.combobox-lista li.activo {
+  background: #edf7f3;
+  color: #009661;
+}
 
 .descarga-item {
   display: flex;
@@ -646,6 +738,7 @@ tbody td {
 
   .app-header,
   .app-nav,
+  .sub-nav,
   .no-print,
   .filtros-wrap,
   .descarga-item {
@@ -664,6 +757,10 @@ tbody td {
     border-top: 2px solid #009661;
     page-break-inside: avoid;
     margin-bottom: 16px;
+  }
+
+  .print-nueva-pagina {
+    page-break-before: always;
   }
 
   .graficos-wrap {

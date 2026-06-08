@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -26,6 +26,77 @@ function tickFormatter(str) {
   const parts = str.split(' ');
   const fechaParts = parts[0].split('/');
   return `${fechaParts[0]}/${fechaParts[1]} ${parts[1] || ''}`.trim();
+}
+
+// ── Combobox con búsqueda ─────────────────────────────────────────────────────
+
+function Combobox({ opciones, valor, onChange, placeholder }) {
+  const [texto, setTexto] = useState(valor || '');
+  const [abierto, setAbierto] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => { setTexto(valor || ''); }, [valor]);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setAbierto(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtradas = useMemo(() =>
+    opciones.filter(o => o.toLowerCase().includes(texto.toLowerCase())),
+    [opciones, texto]
+  );
+
+  const seleccionar = useCallback((opcion) => {
+    setTexto(opcion);
+    onChange(opcion);
+    setAbierto(false);
+  }, [onChange]);
+
+  const limpiar = useCallback(() => {
+    setTexto('');
+    onChange('');
+    setAbierto(false);
+  }, [onChange]);
+
+  const handleChange = (e) => {
+    setTexto(e.target.value);
+    onChange('');
+    setAbierto(true);
+  };
+
+  const handleBlur = () => {
+    // Si el texto escrito coincide exactamente con una opción, la seleccionamos
+    const exacta = opciones.find(o => o.toLowerCase() === texto.toLowerCase());
+    if (exacta) { onChange(exacta); setTexto(exacta); }
+    else if (!valor) setTexto('');
+  };
+
+  return (
+    <div ref={ref} className="combobox-wrap">
+      <input
+        className="filtro-input combobox-input"
+        value={texto}
+        placeholder={placeholder}
+        onChange={handleChange}
+        onFocus={() => setAbierto(true)}
+        onBlur={handleBlur}
+      />
+      {texto && (
+        <button className="combobox-clear" onMouseDown={limpiar} tabIndex={-1}>✕</button>
+      )}
+      {abierto && filtradas.length > 0 && (
+        <ul className="combobox-lista">
+          {filtradas.map(o => (
+            <li key={o} onMouseDown={() => seleccionar(o)} className={o === valor ? 'activo' : ''}>
+              {o}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 // ── Semáforo ──────────────────────────────────────────────────────────────────
@@ -225,16 +296,16 @@ function VistaReporte({ descarga, onVolver }) {
                 : (g.diferencia_puerto_planta_tn >= 0 ? 'Ganancia en tránsito' : 'Merma en tránsito')
             }
           />
-          <KpiCard label="Total de cargas" value={g.cantidad_cargas} />
-          <KpiCard label="Peso promedio por carga" value={num(g.peso_promedio_por_carga_tn)} unit="tn" />
+          <KpiCard label="Total de viajes" value={g.cantidad_cargas} />
+          <KpiCard label="Peso promedio por viaje" value={num(g.peso_promedio_por_carga_tn)} unit="tn" />
         </div>
 
         {g.cargas_por_fecha?.length > 1 && (
           <div style={{ marginTop: 20 }}>
-            <p className="kpi-label" style={{ marginBottom: 10 }}>Cargas por fecha</p>
+            <p className="kpi-label" style={{ marginBottom: 10 }}>Viajes por fecha</p>
             <div className="tabla-compacta">
               <table>
-                <thead><tr><th>Fecha</th><th>Cargas</th></tr></thead>
+                <thead><tr><th>Fecha</th><th>Viajes</th></tr></thead>
                 <tbody>
                   {g.cargas_por_fecha.map(r => (
                     <tr key={r.fecha}><td>{r.fecha}</td><td>{r.cargas}</td></tr>
@@ -242,84 +313,6 @@ function VistaReporte({ descarga, onVolver }) {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Grupo 2: Flota y demoras */}
-      <div className="card print-card">
-        <h2>Flota y demoras</h2>
-        <div className="kpi-grid">
-          <KpiCard label="Matrículas únicas" value={f.matriculas_unicas} unit="camiones" />
-          <KpiCard label="Demora promedio en planta" value={num(f.demora_promedio_dentro_planta_min, 0)} unit="min" />
-          <KpiCard label="Demora promedio fuera de planta" value={num(f.demora_promedio_fuera_planta_min, 0)} unit="min" />
-          <KpiCard
-            label="Tiempo sin camiones en planta"
-            value={num(f.total_minutos_sin_camiones_en_planta, 0)}
-            unit="min"
-            sub={`${f.periodos_sin_camiones_en_planta?.length ?? 0} períodos`}
-          />
-        </div>
-
-        {/* Detalle por matrícula */}
-        <div style={{ marginTop: 20 }}>
-          <p className="kpi-label" style={{ marginBottom: 10 }}>Detalle por matrícula</p>
-          <div className="tabla-compacta">
-            <table>
-              <thead>
-                <tr>
-                  <th>Matrícula</th>
-                  <th>Cargas</th>
-                  <th>Dem. planta (min)</th>
-                  <th>Dem. fuera planta (min)</th>
-                  <th>Dif. netos prom. (kg)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {f.detalle_por_matricula.map(r => (
-                  <tr key={r.matricula}>
-                    <td translate="no">{r.matricula}</td>
-                    <td>{r.cargas}</td>
-                    <td>{r.demora_promedio_planta_min !== null ? num(r.demora_promedio_planta_min, 1) : '—'}</td>
-                    <td>{r.demora_promedio_fuera_planta_min !== null ? num(r.demora_promedio_fuera_planta_min, 1) : '—'}</td>
-                    <td style={{ color: r.diferencia_netos_promedio_kg >= 0 ? '#005738' : '#9b1c1c' }}>
-                      {r.diferencia_netos_promedio_kg !== null
-                        ? (r.diferencia_netos_promedio_kg >= 0 ? '+' : '') + num(r.diferencia_netos_promedio_kg, 1)
-                        : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Períodos sin camiones */}
-        {f.periodos_sin_camiones_en_planta?.length > 0 && (
-          <div style={{ marginTop: 20 }}>
-            <p className="kpi-label" style={{ marginBottom: 10 }}>
-              Períodos sin camiones en planta ({f.periodos_sin_camiones_en_planta.length})
-            </p>
-            <div className="tabla-compacta">
-              <table>
-                <thead><tr><th>Desde</th><th>Hasta</th><th>Duración</th></tr></thead>
-                <tbody>
-                  {f.periodos_sin_camiones_en_planta.map((p, i) => (
-                    <tr key={i}><td>{p.desde}</td><td>{p.hasta}</td><td>{p.duracion_min} min</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Gráficos */}
-        {f.grafico_camiones_en_circuito?.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <GraficosFlota
-              circuito={f.grafico_camiones_en_circuito}
-              planta={f.grafico_camiones_en_planta}
-            />
           </div>
         )}
       </div>
@@ -334,7 +327,6 @@ function VistaReporte({ descarga, onVolver }) {
           return p.length >= 3 ? p.slice(p.length - 2).join(' - ') : d;
         };
 
-        // Promedios históricos (solo de las descargas comparadas)
         const avg = (campo) => {
           const vals = comp.map(c => c[campo]).filter(v => v !== null && v !== undefined);
           return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
@@ -347,7 +339,6 @@ function VistaReporte({ descarga, onVolver }) {
           sin_cam:     avg('total_minutos_sin_camiones_en_planta'),
         };
 
-        // Fila de la descarga actual
         const actual = {
           descarga,
           total_toneladas_netas:              g.total_toneladas_netas,
@@ -402,7 +393,7 @@ function VistaReporte({ descarga, onVolver }) {
                     <th>Fecha / Buque</th>
                     <th>Tn netas</th>
                     <th>Dif. pto/planta</th>
-                    <th>Matr.</th>
+                    <th>Camiones</th>
                     <th>Dem. planta</th>
                     <th>Dem. fuera</th>
                     <th>Sin camiones</th>
@@ -424,6 +415,85 @@ function VistaReporte({ descarga, onVolver }) {
           </div>
         );
       })()}
+
+      {/* Grupo 2: Flota y demoras */}
+      <div className="card print-card print-nueva-pagina">
+        <h2>Flota y demoras</h2>
+        <div className="kpi-grid">
+          <KpiCard label="Matrículas únicas" value={f.matriculas_unicas} unit="camiones" />
+          <KpiCard label="Demora promedio en planta" value={num(f.demora_promedio_dentro_planta_min, 0)} unit="min" />
+          <KpiCard label="Demora promedio fuera de planta" value={num(f.demora_promedio_fuera_planta_min, 0)} unit="min" />
+          <KpiCard
+            label="Tiempo sin camiones en planta"
+            value={num(f.total_minutos_sin_camiones_en_planta, 0)}
+            unit="min"
+            sub={`${f.periodos_sin_camiones_en_planta?.length ?? 0} períodos`}
+          />
+        </div>
+
+        {/* Detalle por matrícula */}
+        <div style={{ marginTop: 20 }}>
+          <p className="kpi-label" style={{ marginBottom: 10 }}>Detalle por matrícula</p>
+          <div className="tabla-compacta">
+            <table>
+              <thead>
+                <tr>
+                  <th>Matrícula</th>
+                  <th>Viajes</th>
+                  <th>Dem. planta (min)</th>
+                  <th>Dem. fuera planta (min)</th>
+                  <th>Dif. netos prom. (tn)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {f.detalle_por_matricula.map(r => (
+                  <tr key={r.matricula}>
+                    <td translate="no">{r.matricula}</td>
+                    <td>{r.cargas}</td>
+                    <td>{r.demora_promedio_planta_min !== null ? num(r.demora_promedio_planta_min, 1) : '—'}</td>
+                    <td>{r.demora_promedio_fuera_planta_min !== null ? num(r.demora_promedio_fuera_planta_min, 1) : '—'}</td>
+                    <td style={{ color: r.diferencia_netos_promedio_kg >= 0 ? '#005738' : '#9b1c1c' }}>
+                      {r.diferencia_netos_promedio_kg !== null
+                        ? (r.diferencia_netos_promedio_kg >= 0 ? '+' : '') + num(r.diferencia_netos_promedio_kg / 1000, 3)
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Períodos sin camiones */}
+        {f.periodos_sin_camiones_en_planta?.length > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <p className="kpi-label" style={{ marginBottom: 10 }}>
+              Períodos sin camiones en planta ({f.periodos_sin_camiones_en_planta.length})
+            </p>
+            <div className="tabla-compacta">
+              <table>
+                <thead><tr><th>Desde</th><th>Hasta</th><th>Duración</th></tr></thead>
+                <tbody>
+                  {f.periodos_sin_camiones_en_planta.map((p, i) => (
+                    <tr key={i}><td>{p.desde}</td><td>{p.hasta}</td><td>{p.duracion_min} min</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Gráficos */}
+        {f.grafico_camiones_en_circuito?.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <GraficosFlota
+              circuito={f.grafico_camiones_en_circuito}
+              planta={f.grafico_camiones_en_planta}
+            />
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
@@ -488,14 +558,18 @@ export default function PantallaReportes() {
           Seleccioná una descarga para ver el reporte. Ordenadas por fecha de finalización, más reciente primero.
         </p>
         <div className="filtros-wrap">
-          <select className="filtro-select" value={filtroProducto} onChange={e => setFiltroProducto(e.target.value)}>
-            <option value="">Todos los productos</option>
-            {productos.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <select className="filtro-select" value={filtroBuque} onChange={e => setFiltroBuque(e.target.value)}>
-            <option value="">Todos los buques</option>
-            {buques.map(b => <option key={b} value={b} translate="no">{b}</option>)}
-          </select>
+          <Combobox
+            opciones={productos}
+            valor={filtroProducto}
+            onChange={setFiltroProducto}
+            placeholder="Buscar producto..."
+          />
+          <Combobox
+            opciones={buques}
+            valor={filtroBuque}
+            onChange={setFiltroBuque}
+            placeholder="Buscar buque..."
+          />
           <input type="date" className="filtro-input" value={filtroFechaDesde} onChange={e => setFiltroFechaDesde(e.target.value)} title="Fecha de finalización desde" />
           <input type="date" className="filtro-input" value={filtroFechaHasta} onChange={e => setFiltroFechaHasta(e.target.value)} title="Fecha de finalización hasta" />
           {hayFiltros && <button className="btn btn-ghost btn-sm" onClick={limpiarFiltros}>Limpiar filtros</button>}
