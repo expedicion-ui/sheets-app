@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import logoIsusa from './logo-isusa.png';
+import PantallaReportes from './PantallaReportes';
 import './App.css';
 
 const API = 'http://localhost:8001';
@@ -259,7 +260,7 @@ function PreviewCard({ item, onSubir, onPosponer, onEliminar, onCancelar, modoRe
 // ── App principal ───────────────────────────────────────────────────────────
 
 export default function App() {
-  const [pantalla, setPantalla] = useState('inicio'); // inicio | carga | pendientes
+  const [pantalla, setPantalla] = useState('inicio'); // inicio | pendientes | reportes
   const [archivos, setArchivos] = useState([]);
   const [estado, setEstado] = useState('idle');
   const [previews, setPreviews] = useState([]);
@@ -292,13 +293,14 @@ export default function App() {
     setProgreso({ actual: 0, total: archivos.length });
     try {
       const { data: { descargas: existentes } } = await axios.get(`${API}/descargas`);
+      const idsExistentes = new Set(existentes.map(d => d.descarga));
       const resultados = [];
       for (let i = 0; i < archivos.length; i++) {
         setProgreso({ actual: i + 1, total: archivos.length });
         const form = new FormData();
         form.append('archivo', archivos[i]);
         const { data } = await axios.post(`${API}/previsualizar-xls`, form);
-        const duplicada = existentes.includes(data.descarga);
+        const duplicada = idsExistentes.has(data.descarga);
         resultados.push({ ...data, nombre: archivos[i].name, duplicada });
       }
       setPreviews(resultados);
@@ -357,6 +359,9 @@ export default function App() {
           </button>
           <button className={`nav-btn ${pantalla === 'pendientes' ? 'active' : ''}`} onClick={() => setPantalla('pendientes')}>
             Pendientes de revisión {pendientes.length > 0 && <span className="badge">{pendientes.length}</span>}
+          </button>
+          <button className={`nav-btn ${pantalla === 'reportes' ? 'active' : ''}`} onClick={() => setPantalla('reportes')}>
+            Reportes
           </button>
         </nav>
       </div>
@@ -449,6 +454,9 @@ export default function App() {
           )}
         </>
       )}
+
+      {/* ── Pantalla: Reportes ── */}
+      {pantalla === 'reportes' && <PantallaReportes />}
 
       {/* ── Pantalla: Pendientes ── */}
       {pantalla === 'pendientes' && (
