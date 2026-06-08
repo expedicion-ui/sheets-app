@@ -286,6 +286,48 @@ def corregir_pesos(df: pd.DataFrame, correcciones: list) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# CORRECCIÓN 4: Fechas anómalas dentro de la descarga
+# ---------------------------------------------------------------------------
+
+def detectar_fechas_anomalas(df: pd.DataFrame, correcciones: list) -> None:
+    """
+    Avisa si algún registro tiene una fecha que difiere más de 48 hs
+    del grueso del grupo (percentil 10-90 del archivo).
+    No modifica el df — solo agrega avisos a correcciones.
+    """
+    UMBRAL_HORAS = 48
+
+    dts = df.apply(
+        lambda r: _parse_datetime(str(r["FECHA"]), str(r["HORA ENTRADA"])), axis=1
+    )
+    validos = dts.dropna()
+    if len(validos) < 3:
+        return
+
+    sorted_dts = sorted(validos)
+    n = len(sorted_dts)
+    p10 = sorted_dts[max(0, n // 10)]
+    p90 = sorted_dts[min(n - 1, 9 * n // 10)]
+
+    for idx, dt in dts.items():
+        if dt is None:
+            continue
+        horas_antes = (p10 - dt).total_seconds() / 3600 if dt < p10 else 0
+        horas_despues = (dt - p90).total_seconds() / 3600 if dt > p90 else 0
+        desfase = max(horas_antes, horas_despues)
+        if desfase > UMBRAL_HORAS:
+            carga = df.loc[idx, "CARGA"]
+            matricula = df.loc[idx, "MATRÍCULA"]
+            fecha = df.loc[idx, "FECHA"]
+            hora = df.loc[idx, "HORA ENTRADA"]
+            direccion = "antes" if horas_antes > 0 else "después"
+            correcciones.append(
+                f"FECHA ANOMALA: carga {carga} (matrícula {matricula}) — "
+                f"{fecha} {hora} está {int(desfase)} hs {direccion} del resto de la descarga — revisar manualmente"
+            )
+
+
+# ---------------------------------------------------------------------------
 # Pipeline principal de procesamiento
 # ---------------------------------------------------------------------------
 
@@ -343,6 +385,7 @@ def procesar_xls(contenido: bytes):
     df = corregir_matriculas(df, correcciones)
     df = corregir_boletas(df, correcciones)
     df = corregir_pesos(df, correcciones)
+    detectar_fechas_anomalas(df, correcciones)
 
     # Recalcular NETO final (NETO PLANTA - NETO PUERTO) después de todas las correcciones
     neto_calculado = df["NETO PLANTA"] - df["NETO PUERTO"]
