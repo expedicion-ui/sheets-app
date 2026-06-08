@@ -8,6 +8,7 @@ import re
 import difflib
 import traceback
 from datetime import datetime, timedelta
+from reportes import calcular_reporte
 
 app = FastAPI()
 
@@ -428,15 +429,51 @@ async def previsualizar_xls(archivo: UploadFile = File(...)):
 
 @app.get("/descargas")
 def obtener_descargas():
-    """Devuelve la lista de identificadores DESCARGA ya existentes en la hoja."""
+    """
+    Devuelve la lista de descargas con metadatos, ordenadas por fecha de
+    finalización descendente (la más reciente primero).
+    """
     try:
         sheet = get_sheet()
-        valores = sheet.get_all_values()
-        if len(valores) < 2:
+        registros = sheet.get_all_records()
+        if not registros:
             return {"descargas": []}
-        col_idx = 0  # DESCARGA es la primera columna
-        descargas = list({fila[col_idx] for fila in valores[1:] if fila and fila[col_idx]})
-        return {"descargas": descargas}
+
+        agrupadas = {}
+        for r in registros:
+            desc = r.get("DESCARGA", "")
+            if not desc:
+                continue
+            if desc not in agrupadas:
+                agrupadas[desc] = {
+                    "descarga": desc,
+                    "producto": r.get("PRODUCTO", ""),
+                    "buque": r.get("BUQUE", ""),
+                    "fecha_fin": None,
+                }
+            # Combinar FECHA + HORA SALIDA para obtener el datetime más tardío
+            fecha = r.get("FECHA", "")
+            hora_salida = r.get("HORA SALIDA", "")
+            if fecha and hora_salida:
+                try:
+                    dt = datetime.strptime(f"{fecha} {hora_salida}", "%d/%m/%Y %H:%M")
+                    actual = agrupadas[desc]["fecha_fin"]
+                    if actual is None or dt > actual:
+                        agrupadas[desc]["fecha_fin"] = dt
+                except Exception:
+                    pass
+
+        resultado = sorted(
+            agrupadas.values(),
+            key=lambda x: x["fecha_fin"] or datetime.min,
+            reverse=True,
+        )
+
+        # Serializar fecha_fin a string
+        for item in resultado:
+            item["fecha_fin"] = item["fecha_fin"].strftime("%d/%m/%Y %H:%M") if item["fecha_fin"] else None
+
+        return {"descargas": resultado}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -479,6 +516,24 @@ async def subir_datos(payload: dict):
     except HTTPException:
         raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/reportes/{descarga:path}")
+def obtener_reporte(descarga: str):
+    """Devuelve todos los indicadores calculados para una descarga específica."""
+    try:
+        sheet = get_sheet()
+        todos = sheet.get_all_records()
+        registros = [r for r in todos if r.get("DESCARGA") == descarga]
+        if not registros:
+            raise HTTPException(status_code=404, detail=f"Descarga '{descarga}' no encontrada")
+        reporte = calcular_reporte(registros, todos_los_registros=todos)
+        return {"descarga": descarga, **reporte}
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
