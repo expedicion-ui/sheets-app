@@ -536,13 +536,26 @@ async def subir_datos(payload: dict):
 
         if reemplazar and descarga:
             # Eliminar filas existentes de esta descarga (sin tocar el encabezado)
-            indices_borrar = [
-                i + 1 for i, fila in enumerate(todos[1:])
+            # Los índices son 1-based en Sheets (fila 1 = encabezado)
+            indices_borrar = sorted([
+                i + 2 for i, fila in enumerate(todos[1:])
                 if fila and fila[0] == descarga
-            ]
-            # Borrar de abajo hacia arriba para no desplazar índices
-            for i in sorted(indices_borrar, reverse=True):
-                sheet.delete_rows(i + 1)  # +1 porque Sheets usa base 1
+            ])
+            # Borrar en bloques contiguos con una sola llamada por bloque
+            # para no superar el rate limit de la API de Google Sheets
+            if indices_borrar:
+                bloques = []
+                inicio = indices_borrar[0]
+                fin = indices_borrar[0]
+                for idx in indices_borrar[1:]:
+                    if idx == fin + 1:
+                        fin = idx
+                    else:
+                        bloques.append((inicio, fin))
+                        inicio = fin = idx
+                bloques.append((inicio, fin))
+                for bloque_inicio, bloque_fin in reversed(bloques):
+                    sheet.delete_rows(bloque_inicio, bloque_fin)
 
         todos_actualizado = sheet.get_all_values()
         if len(todos_actualizado) == 0:
