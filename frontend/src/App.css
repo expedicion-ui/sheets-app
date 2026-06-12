@@ -588,7 +588,7 @@ tbody td {
   min-width: 140px;
   background: #f7fbf9;
   border-radius: 8px;
-  padding: 14px 16px;
+  padding: 9px 16px;
   border-left: 3px solid #009661;
 }
 
@@ -598,11 +598,11 @@ tbody td {
   letter-spacing: 0.7px;
   color: #888;
   font-weight: 600;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
 }
 
 .kpi-value {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
   color: #1a1a1a;
 }
@@ -756,7 +756,8 @@ tbody td {
     border-radius: 0;
     border-top: 2px solid #009661;
     page-break-inside: avoid;
-    margin-bottom: 16px;
+    margin-bottom: 0;
+    padding: 12px 16px;
   }
 
   .print-nueva-pagina {
@@ -767,7 +768,62 @@ tbody td {
     page-break-inside: avoid;
   }
 
+  .graficos-wrap .recharts-responsive-container,
+  .graficos-wrap > div {
+    height: 220px !important;
+  }
+
   .tabla-compacta {
     page-break-inside: avoid;
+  }
+
+  /* Espacio entre filas de KPI */
+  .kpi-grid {
+    gap: 6px;
+  }
+  .kpi-grid + .kpi-grid {
+    margin-top: 10px !important;
+  }
+
+  /* KPI cards más compactos en impresión */
+  .kpi-card {
+    padding: 6px 10px;
+  }
+  .kpi-value {
+    font-size: 14px;
+  }
+  .kpi-label {
+    font-size: 9px;
+    margin-bottom: 2px;
+  }
+  .kpi-sub {
+    font-size: 9px;
+    margin-top: 1px;
+  }
+
+  /* Tabla comparativa más compacta */
+  .tabla-comparativa th,
+  .tabla-comparativa td {
+    font-size: 9px;
+    padding: 4px 5px;
+  }
+
+  /* Leyenda semáforos */
+  .semaforo-leyenda {
+    font-size: 9px;
+    margin-top: 6px;
+    gap: 10px;
+  }
+
+  /* Fechas del encabezado */
+  .reporte-fechas {
+    font-size: 10px;
+  }
+
+  /* Título comparativa */
+  .print-card h2 {
+    font-size: 11px;
+    margin-bottom: 6px;
+    margin-top: 14px !important;
   }
 }

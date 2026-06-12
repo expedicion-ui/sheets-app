@@ -30,6 +30,19 @@ def calcular_reporte(registros: list[dict], todos_los_registros: list[dict] | No
         **_indicadores_flota(df),
     }
 
+    # Calcular TxH usando duración (generales) y tiempo sin camiones (flota)
+    tn = resultado["generales"]["total_toneladas_netas"]
+    dur_h = resultado["generales"]["duracion_horas"]
+    sin_cam_h = (resultado["flota"]["total_minutos_sin_camiones_en_planta"] or 0) / 60
+
+    resultado["generales"]["tn_por_hora_total"] = (
+        round(tn / dur_h, 2) if dur_h and dur_h > 0 else None
+    )
+    dur_efectiva_h = dur_h - sin_cam_h if dur_h else None
+    resultado["generales"]["tn_por_hora_efectiva"] = (
+        round(tn / dur_efectiva_h, 2) if dur_efectiva_h and dur_efectiva_h > 0 else None
+    )
+
     if todos_los_registros:
         producto = df["PRODUCTO"].iloc[0] if len(df) > 0 else ""
         descarga_actual = df["DESCARGA"].iloc[0] if len(df) > 0 else ""
@@ -79,9 +92,11 @@ def _indicadores_generales(df: pd.DataFrame) -> dict:
     fecha_fin = fecha_fin_dt.max().strftime("%d/%m/%Y %H:%M") if len(fecha_fin_dt) > 0 else None
 
     duracion_dias = None
+    duracion_horas = None
     if len(fechas_validas) > 0 and len(fecha_fin_dt) > 0:
         delta = fecha_fin_dt.max() - fechas_validas.min()
         duracion_dias = round(delta.total_seconds() / 86400, 1)
+        duracion_horas = round(delta.total_seconds() / 3600, 1)
 
     cargas_por_fecha = (
         df.dropna(subset=["_dt_entrada"])
@@ -97,11 +112,14 @@ def _indicadores_generales(df: pd.DataFrame) -> dict:
             "total_toneladas_netas": total_neto_planta,
             "diferencia_puerto_planta_tn": diferencia_puerto_planta,
             "diferencia_porcentaje": diferencia_porcentaje,
+            "tn_por_hora_total": None,      # calculado en calcular_reporte
+            "tn_por_hora_efectiva": None,   # calculado en calcular_reporte
             "cantidad_cargas": cantidad_cargas,
             "peso_promedio_por_carga_tn": peso_promedio,
             "fecha_inicio": fecha_inicio,
             "fecha_fin": fecha_fin,
             "duracion_dias": duracion_dias,
+            "duracion_horas": duracion_horas,
             "cargas_por_fecha": cargas_por_fecha,
         }
     }
@@ -351,10 +369,24 @@ def _indicadores_resumen(registros: list[dict]) -> dict:
     demora_planta = round(df_valid["_dur"].mean(), 1) if len(df_valid) > 0 else None
     total_sin_camiones = round(sum(p["duracion_min"] for p in periodos), 1)
 
+    # Duración total y TxH
+    fechas_validas = df["_dt_entrada"].dropna()
+    fecha_fin_dt   = df["_dt_salida"].dropna()
+    duracion_horas = None
+    if len(fechas_validas) > 0 and len(fecha_fin_dt) > 0:
+        delta = fecha_fin_dt.max() - fechas_validas.min()
+        duracion_horas = round(delta.total_seconds() / 3600, 1)
+    sin_cam_h = (total_sin_camiones or 0) / 60
+    tn_x_h_total    = round(total_tn / duracion_horas, 2) if duracion_horas and duracion_horas > 0 else None
+    dur_ef_h        = duracion_horas - sin_cam_h if duracion_horas else None
+    tn_x_h_efectiva = round(total_tn / dur_ef_h, 2) if dur_ef_h and dur_ef_h > 0 else None
+
     return {
         "total_toneladas_netas": total_tn,
         "diferencia_puerto_planta_tn": dif_tn,
         "diferencia_porcentaje": dif_pct,
+        "tn_por_hora_total": tn_x_h_total,
+        "tn_por_hora_efectiva": tn_x_h_efectiva,
         "matriculas_unicas": matriculas,
         "demora_promedio_dentro_planta_min": demora_planta,
         "demora_promedio_fuera_planta_min": demora_fuera,

@@ -106,19 +106,35 @@ function Combobox({ opciones, valor, onChange, placeholder }) {
  * mejorEsMenor: true para demoras y tiempo sin camiones, false para diferencia %.
  * Umbral: ±5% del promedio → amarillo; fuera → verde/rojo.
  */
-function Semaforo({ valor, promedio, mejorEsMenor }) {
+function Semaforo({ valor, promedio, mejorEsMenor, objetivo }) {
   if (valor === null || valor === undefined || promedio === null || promedio === undefined) return null;
 
   let color;
-  const umbral = Math.abs(promedio) * 0.05;
-  const diff = valor - promedio;
 
-  if (Math.abs(diff) <= umbral) {
-    color = '#d97706'; // amarillo
-  } else if ((mejorEsMenor && diff < 0) || (!mejorEsMenor && diff > 0)) {
-    color = '#009661'; // verde
+  if (objetivo !== undefined && objetivo !== null) {
+    // Lógica con set point:
+    // mejorEsMenor=true  → cumple si valor <= objetivo (ej: demora ≤ 35 min)
+    // mejorEsMenor=false → cumple si valor >= objetivo (ej: dif% ≥ -0.2%)
+    const cumpleObjetivo = mejorEsMenor ? valor <= objetivo : valor >= objetivo;
+    if (cumpleObjetivo) {
+      color = '#009661'; // verde: cumple objetivo
+    } else {
+      // Fuera de objetivo: mejor que histórico → amarillo, peor → rojo
+      const diff = valor - promedio;
+      const mejora = mejorEsMenor ? diff < 0 : diff > 0;
+      color = mejora ? '#d97706' : '#DC291E';
+    }
   } else {
-    color = '#DC291E'; // rojo
+    // Lógica original: comparación vs promedio histórico ±5%
+    const umbral = Math.abs(promedio) * 0.05;
+    const diff = valor - promedio;
+    if (Math.abs(diff) <= umbral) {
+      color = '#d97706'; // amarillo
+    } else if ((mejorEsMenor && diff < 0) || (!mejorEsMenor && diff > 0)) {
+      color = '#009661'; // verde
+    } else {
+      color = '#DC291E'; // rojo
+    }
   }
 
   return (
@@ -262,29 +278,31 @@ function VistaReporte({ descarga, onVolver }) {
 
   return (
     <div ref={reporteRef}>
-      {/* Encabezado */}
+      {/* Encabezado + KPIs en una sola card */}
       <div className="card print-card">
         <div className="reporte-header">
           <div>
             <span className="tag tag-ok no-print">Reporte</span>
             <h2 style={{ marginTop: 6 }} translate="no">{descarga}</h2>
+            <div className="reporte-fechas" style={{ marginTop: 4 }}>
+              {g.fecha_inicio && <span><strong>Inicio:</strong> {g.fecha_inicio}</span>}
+              {g.fecha_fin    && <span><strong>Fin:</strong> {g.fecha_fin}</span>}
+              {g.duracion_dias !== null && (
+                <span>
+                  <strong>Duración:</strong> {g.duracion_dias} días
+                  {g.duracion_horas !== null ? ` (${num(g.duracion_horas, 1)} hs)` : ''}
+                </span>
+              )}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }} className="no-print">
             <button className="btn btn-ghost btn-sm" onClick={exportarPDF}>⬇ Exportar PDF</button>
             <button className="btn btn-ghost btn-sm" onClick={onVolver}>← Volver</button>
           </div>
         </div>
-      </div>
 
-      {/* Grupo 1: Indicadores generales */}
-      <div className="card print-card">
-        <h2>Indicadores generales</h2>
-        <div className="reporte-fechas">
-          {g.fecha_inicio && <span><strong>Inicio:</strong> {g.fecha_inicio}</span>}
-          {g.fecha_fin    && <span><strong>Fin:</strong> {g.fecha_fin}</span>}
-          {g.duracion_dias !== null && <span><strong>Duración:</strong> {g.duracion_dias} días</span>}
-        </div>
-        <div className="kpi-grid">
+        {/* Fila 1: toneladas, diferencia, TxH totales, TxH efectivas */}
+        <div className="kpi-grid" style={{ marginTop: 16 }}>
           <KpiCard label="Toneladas netas (planta)" value={num(g.total_toneladas_netas)} unit="tn" />
           <KpiCard
             label="Diferencia puerto / planta"
@@ -292,30 +310,28 @@ function VistaReporte({ descarga, onVolver }) {
             unit="tn"
             sub={
               g.diferencia_porcentaje !== null
-                ? `${num(g.diferencia_porcentaje)}% del neto · ${g.diferencia_puerto_planta_tn >= 0 ? 'Ganancia' : 'Merma'} en tránsito`
+                ? `${num(g.diferencia_porcentaje)}% · ${g.diferencia_puerto_planta_tn >= 0 ? 'Ganancia' : 'Merma'} en tránsito`
                 : (g.diferencia_puerto_planta_tn >= 0 ? 'Ganancia en tránsito' : 'Merma en tránsito')
             }
           />
+          <KpiCard label="TxH Totales" value={num(g.tn_por_hora_total, 1)} unit="tn/h" sub="Sobre duración total" />
+          <KpiCard label="TxH Efectivas" value={num(g.tn_por_hora_efectiva, 1)} unit="tn/h" sub="Excluye tiempo sin camiones" />
+        </div>
+
+        {/* Fila 2: viajes, matrículas, peso promedio */}
+        <div className="kpi-grid" style={{ marginTop: 12 }}>
           <KpiCard label="Total de viajes" value={g.cantidad_cargas} />
+          <KpiCard label="Matrículas únicas" value={f.matriculas_unicas} unit="camiones" />
           <KpiCard label="Peso promedio por viaje" value={num(g.peso_promedio_por_carga_tn)} unit="tn" />
         </div>
 
-        {g.cargas_por_fecha?.length > 1 && (
-          <div style={{ marginTop: 20 }}>
-            <p className="kpi-label" style={{ marginBottom: 10 }}>Viajes por fecha</p>
-            <div className="tabla-compacta">
-              <table>
-                <thead><tr><th>Fecha</th><th>Viajes</th></tr></thead>
-                <tbody>
-                  {g.cargas_por_fecha.map(r => (
-                    <tr key={r.fecha}><td>{r.fecha}</td><td>{r.cargas}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
+        {/* Fila 3: demoras */}
+        <div className="kpi-grid" style={{ marginTop: 12 }}>
+          <KpiCard label="Demora promedio en planta" value={num(f.demora_promedio_dentro_planta_min, 0)} unit="min" />
+          <KpiCard label="Demora promedio fuera de planta" value={num(f.demora_promedio_fuera_planta_min, 0)} unit="min" />
+          <KpiCard label="Tiempo sin camiones en planta" value={num(f.total_minutos_sin_camiones_en_planta, 0)} unit="min" />
+        </div>
+        <hr style={{ border: 'none', borderTop: '1px solid #e0ede8', margin: '24px 0 0' }} />
 
       {/* Comparativa histórica */}
       {comp.length > 0 && (() => {
@@ -344,6 +360,8 @@ function VistaReporte({ descarga, onVolver }) {
           total_toneladas_netas:              g.total_toneladas_netas,
           diferencia_puerto_planta_tn:        g.diferencia_puerto_planta_tn,
           diferencia_porcentaje:              g.diferencia_porcentaje,
+          tn_por_hora_total:                  g.tn_por_hora_total,
+          tn_por_hora_efectiva:               g.tn_por_hora_efectiva,
           matriculas_unicas:                  f.matriculas_unicas,
           demora_promedio_dentro_planta_min:  f.demora_promedio_dentro_planta_min,
           demora_promedio_fuera_planta_min:   f.demora_promedio_fuera_planta_min,
@@ -355,20 +373,26 @@ function VistaReporte({ descarga, onVolver }) {
             <td translate="no" style={{ fontWeight: esActual ? 700 : 500 }}>
               {esActual ? '▶ ' : ''}{abreviarDescarga(c.descarga)}
             </td>
-            <td>{num(c.total_toneladas_netas)}</td>
+            <td>{num(c.total_toneladas_netas, 0)}</td>
             <td>
               <span>{num(c.diferencia_puerto_planta_tn)} tn</span>
               {c.diferencia_porcentaje !== null && (
                 <span className="kpi-sub" style={{ display: 'block' }}>
                   {num(c.diferencia_porcentaje)}%
-                  {esActual && <Semaforo valor={c.diferencia_porcentaje} promedio={prom.dif_pct} mejorEsMenor={false} />}
+                  {esActual && <Semaforo valor={c.diferencia_porcentaje} promedio={prom.dif_pct} mejorEsMenor={false} objetivo={-0.2} />}
                 </span>
               )}
+            </td>
+            <td>
+              {c.tn_por_hora_total !== null && c.tn_por_hora_total !== undefined ? num(c.tn_por_hora_total, 1) : '—'}
+            </td>
+            <td>
+              {c.tn_por_hora_efectiva !== null && c.tn_por_hora_efectiva !== undefined ? num(c.tn_por_hora_efectiva, 1) : '—'}
             </td>
             <td>{c.matriculas_unicas}</td>
             <td>
               {c.demora_promedio_dentro_planta_min !== null ? num(c.demora_promedio_dentro_planta_min, 0) + ' min' : '—'}
-              {esActual && <Semaforo valor={c.demora_promedio_dentro_planta_min} promedio={prom.dem_planta} mejorEsMenor={true} />}
+              {esActual && <Semaforo valor={c.demora_promedio_dentro_planta_min} promedio={prom.dem_planta} mejorEsMenor={true} objetivo={35} />}
             </td>
             <td>
               {c.demora_promedio_fuera_planta_min !== null ? num(c.demora_promedio_fuera_planta_min, 0) + ' min' : '—'}
@@ -382,8 +406,8 @@ function VistaReporte({ descarga, onVolver }) {
         );
 
         return (
-          <div className="card print-card">
-            <h2>
+          <div>
+            <h2 style={{ marginTop: 20, marginBottom: 10 }}>
               Comparativa — últimas {comp.length} descargas de {productoNombre}
             </h2>
             <div className="tabla-compacta tabla-comparativa">
@@ -393,6 +417,8 @@ function VistaReporte({ descarga, onVolver }) {
                     <th>Fecha / Buque</th>
                     <th>Tn netas</th>
                     <th>Dif. pto/planta</th>
+                    <th>TxH Tot.</th>
+                    <th>TxH Efec.</th>
                     <th>Camiones</th>
                     <th>Dem. planta</th>
                     <th>Dem. fuera</th>
@@ -401,99 +427,33 @@ function VistaReporte({ descarga, onVolver }) {
                 </thead>
                 <tbody>
                   <FilaComparativa c={actual} esActual={true} />
-                  <tr className="separador-comparativa"><td colSpan={7} /></tr>
+                  <tr className="separador-comparativa"><td colSpan={9} /></tr>
                   {comp.map((c, i) => <FilaComparativa key={i} c={c} esActual={false} />)}
                 </tbody>
               </table>
             </div>
             <div className="semaforo-leyenda">
               <span className="semaforo-leyenda-titulo">Sistema de semáforos:</span>
-              <span><span className="dot-semaforo verde" /> Mejor que el promedio histórico (&gt;5%)</span>
-              <span><span className="dot-semaforo amarillo" /> En el promedio histórico (±5%)</span>
-              <span><span className="dot-semaforo rojo" /> Peor que el promedio histórico (&gt;5%)</span>
+              <span><span className="dot-semaforo verde" /> Cumple objetivo / mejor que el promedio (&gt;5%)</span>
+              <span><span className="dot-semaforo amarillo" /> Fuera de objetivo pero mejor que el promedio</span>
+              <span><span className="dot-semaforo rojo" /> Peor que el promedio histórico</span>
             </div>
           </div>
         );
       })()}
 
-      {/* Grupo 2: Flota y demoras */}
-      <div className="card print-card print-nueva-pagina">
-        <h2>Flota y demoras</h2>
-        <div className="kpi-grid">
-          <KpiCard label="Matrículas únicas" value={f.matriculas_unicas} unit="camiones" />
-          <KpiCard label="Demora promedio en planta" value={num(f.demora_promedio_dentro_planta_min, 0)} unit="min" />
-          <KpiCard label="Demora promedio fuera de planta" value={num(f.demora_promedio_fuera_planta_min, 0)} unit="min" />
-          <KpiCard
-            label="Tiempo sin camiones en planta"
-            value={num(f.total_minutos_sin_camiones_en_planta, 0)}
-            unit="min"
-            sub={`${f.periodos_sin_camiones_en_planta?.length ?? 0} períodos`}
+      {/* Gráfico distribución de camiones */}
+      {f.grafico_camiones_en_circuito?.length > 0 && (
+        <div style={{ marginTop: 0 }}>
+        <hr style={{ border: 'none', borderTop: '1px solid #e0ede8', margin: '24px 0' }} />
+          <GraficosFlota
+            circuito={f.grafico_camiones_en_circuito}
+            planta={f.grafico_camiones_en_planta}
           />
         </div>
+      )}
 
-        {/* Detalle por matrícula */}
-        <div style={{ marginTop: 20 }}>
-          <p className="kpi-label" style={{ marginBottom: 10 }}>Detalle por matrícula</p>
-          <div className="tabla-compacta">
-            <table>
-              <thead>
-                <tr>
-                  <th>Matrícula</th>
-                  <th>Viajes</th>
-                  <th>Dem. planta (min)</th>
-                  <th>Dem. fuera planta (min)</th>
-                  <th>Dif. netos prom. (tn)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {f.detalle_por_matricula.map(r => (
-                  <tr key={r.matricula}>
-                    <td translate="no">{r.matricula}</td>
-                    <td>{r.cargas}</td>
-                    <td>{r.demora_promedio_planta_min !== null ? num(r.demora_promedio_planta_min, 1) : '—'}</td>
-                    <td>{r.demora_promedio_fuera_planta_min !== null ? num(r.demora_promedio_fuera_planta_min, 1) : '—'}</td>
-                    <td style={{ color: r.diferencia_netos_promedio_kg >= 0 ? '#005738' : '#9b1c1c' }}>
-                      {r.diferencia_netos_promedio_kg !== null
-                        ? (r.diferencia_netos_promedio_kg >= 0 ? '+' : '') + num(r.diferencia_netos_promedio_kg / 1000, 3)
-                        : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Períodos sin camiones */}
-        {f.periodos_sin_camiones_en_planta?.length > 0 && (
-          <div style={{ marginTop: 20 }}>
-            <p className="kpi-label" style={{ marginBottom: 10 }}>
-              Períodos sin camiones en planta ({f.periodos_sin_camiones_en_planta.length})
-            </p>
-            <div className="tabla-compacta">
-              <table>
-                <thead><tr><th>Desde</th><th>Hasta</th><th>Duración</th></tr></thead>
-                <tbody>
-                  {f.periodos_sin_camiones_en_planta.map((p, i) => (
-                    <tr key={i}><td>{p.desde}</td><td>{p.hasta}</td><td>{p.duracion_min} min</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Gráficos */}
-        {f.grafico_camiones_en_circuito?.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <GraficosFlota
-              circuito={f.grafico_camiones_en_circuito}
-              planta={f.grafico_camiones_en_planta}
-            />
-          </div>
-        )}
-      </div>
-
+      </div>  {/* cierre card principal */}
     </div>
   );
 }
